@@ -1,7 +1,7 @@
 {
   "name": "@biberklatsche/npm",
-  "version": "0.0.1",
-  "description": "Plugin for autocompletion for the 'npm' command in the Cogno Terminal.",
+  "version": "0.0.2",
+  "description": "Enhances the Cogno Terminal auto-completer for the npm command.",
   "keywords": [
     "cogno-plugin"
   ],

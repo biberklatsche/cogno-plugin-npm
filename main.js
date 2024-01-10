@@ -2,32 +2,70 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+let cacheTime;
+let cache = undefined;
+const maxCacheInMillis = 60 * 1000;
 
-async function suggestStart(data) {
-    console.log('################ suggest start');
-    if(os.platform() === 'win32') {
-        data.directory[0] = data.directory[0]+':'
-    } else {
-        data.directory.unshift('/');
+
+function createHash(inputString) {
+    let hash = 0;
+    if (inputString.length === 0) {
+        return hash.toString(10);
     }
+    for (let i = 0; i < inputString.length; i++) {
+        const char = inputString.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash &= hash; // Ensure 32-bit signed integer
+    }
+    return hash.toString(10);
+}
 
-    const dir = path.join(...data.directory);
-    const packageJsonPath = path.join(dir, 'package.json');
-    console.log(packageJsonPath);
+function isLinuxSubsystem(dirs) {
+    return os.platform() === 'win32' && dirs[0] == 'mnt';
+}
+
+function constructSearchDir(dirs) {
+    const directories = isLinuxSubsystem(dirs) ? dirs.slice(1) : dirs;
+    if(os.platform() === 'win32') {
+        const drive = directories[0];
+        const path = directories.reduce((a, v, currentIndex) => currentIndex === 0 ? '' : (currentIndex > 1 ? a : '') + (currentIndex > 1 ? '\\' : '') + v.replace(' ', '` '), '');
+        return `${drive}:\\${path}`;
+    } else {
+        return directories.reduce((a, v, currentIndex) => a + '/' + v.replace(' ', '\\ '), '');
+    }
+}
+
+function readScriptFromPackageJson(packageJsonPath) {
     try {
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath));
         if(packageJson.scripts) {
-            const keys = Object.keys(packageJson.scripts);
-            const partOfScriptName = data.currentInput.input.replace(/npm\srun\s/g, '').trim();
-            console.log('################', data.currentInput.input, partOfScriptName);
-            const filter = keys.filter((key) => key.startsWith(partOfScriptName));
-            console.log('################', filter);
-            return filter.map(f => ({label: f, command: `npm run ${f}`}));
+            return Object.keys(packageJson.scripts);
         }
+        return [];
     } catch(e) {
-        console.log('################', e);
         return [];
     }
+}
+
+async function suggestStart(data) {
+    const dir = constructSearchDir(data.directory);
+    const packageJsonPath = path.join(dir, 'package.json');
+
+    if(!cache || Date.now() - cacheTime > maxCacheInMillis){
+        cache = {};
+        cacheTime = Date.now();
+    }
+    const hash = createHash(packageJsonPath);
+    let scripts;
+    if(!!cache[hash]) {
+        scripts = cache[hash];
+    } else {
+        scripts = readScriptFromPackageJson(packageJsonPath);
+        cache[hash] = scripts;
+    }
+    const partOfScriptName = data.currentInput.input.replace(/npm\srun\s/g, '').trim();
+    const filter = scripts.filter((key) => key.startsWith(partOfScriptName));
+    return filter.map(f => ({label: f, command: `npm run ${f}`}));
 }
 
 /**
@@ -40,6 +78,6 @@ async function suggest(data) {
         return await suggestStart(data);
     }
     return [];
-};
+}
 
 module.exports = {suggest};
