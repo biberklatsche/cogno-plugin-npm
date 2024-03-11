@@ -48,7 +48,7 @@ function readScriptFromPackageJson(packageJsonPath) {
 }
 
 async function suggestStart(data) {
-    const dir = constructSearchDir(data.directory);
+    const dir = constructSearchDir(data.directories);
     const packageJsonPath = path.join(dir, 'package.json');
 
     if(!cache || Date.now() - cacheTime > maxCacheInMillis){
@@ -63,7 +63,7 @@ async function suggestStart(data) {
         scripts = readScriptFromPackageJson(packageJsonPath);
         cache[hash] = scripts;
     }
-    const partOfScriptName = data.currentInput.input.replace(/npm\srun\s/g, '').trim();
+    const partOfScriptName = data.input.replace(/npm\srun\s/g, '').trim();
     const filter = scripts.filter((key) => key.startsWith(partOfScriptName));
     return filter.map(f => ({label: f, command: `npm run ${f}`}));
 }
@@ -74,7 +74,7 @@ async function suggestStart(data) {
  * @returns
  */
 async function suggest(data) {
-    if(/npm\srun.*/g.test(data.currentInput.input)) {
+    if(/npm\srun.*/g.test(data.input)) {
         return await suggestStart(data);
     }
     return [];
