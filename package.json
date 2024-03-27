@@ -1,6 +1,6 @@
 {
   "name": "@biberklatsche/npm",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Enhances the auto-completer for the npm command.",
   "keywords": [
     "cogno-plugin"
@@ -8,7 +8,7 @@
   "author": "Lars Wolfram",
   "license": "MIT",
   "cogno": {
-    "label": "Npm",
+    "label": "npm",
     "regexp": "^npm\\s.*",
     "icon": "📦"
   }
